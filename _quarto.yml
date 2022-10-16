@@ -2,22 +2,13 @@ project:
   type: book
 
 book:
-  title: "deep-learning-from-scratch-r"
-  author: "Jane Doe"
-  date: "10/16/2022"
+  title: "ゼロから作るDeep Learning in R"
+  author: "igjit"
   chapters:
     - index.qmd
-    - intro.qmd
-    - summary.qmd
-    - references.qmd
 
 bibliography: references.bib
 
 format:
   html:
     theme: cosmo
-  pdf:
-    documentclass: scrreprt
-
-
-
