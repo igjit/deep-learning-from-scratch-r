@@ -7,6 +7,7 @@ book:
   author: "igjit"
   chapters:
     - index.qmd
+    - ch02.qmd
 
 bibliography: references.bib
 

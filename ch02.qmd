@@ -1,0 +1,81 @@
+# 2章 パーセプトロン {.unnumbered}
+
+## パーセプトロンの実装
+
+ANDゲートの実装
+
+```{r}
+AND <- function(x1, x2) {
+  x <- c(x1, x2)
+  w <- c(0.5, 0.5)
+  b <- -0.7
+  tmp <- sum(w * x) + b
+
+  if (tmp <= 0) 0 else 1
+}
+```
+
+```{r}
+AND(0, 0)
+AND(0, 1)
+AND(1, 0)
+AND(1, 1)
+```
+
+ゲートを作る補助関数
+
+```{r}
+make_gate <- function(w, b) {
+  function(x1, x2) {
+    x <- c(x1, x2)
+    tmp <- sum(w * x) + b
+
+    if (tmp <= 0) 0 else 1
+  }
+}
+```
+
+NANDゲートの実装
+
+```{r}
+NAND <- make_gate(w = c(-0.5, -0.5), b = 0.7)
+```
+
+```{r}
+NAND(0, 0)
+NAND(0, 1)
+NAND(1, 0)
+NAND(1, 1)
+```
+
+ORゲートの実装
+
+```{r}
+OR <- make_gate(w = c(0.5, 0.5), b = -0.2)
+```
+
+```{r}
+OR(0, 0)
+OR(0, 1)
+OR(1, 0)
+OR(1, 1)
+```
+
+## 多層パーセプトロン
+
+XOR ゲートの実装
+
+```{r}
+XOR <- function(x1, x2) {
+  s1 <- NAND(x1, x2)
+  s2 <- OR(x1, x2)
+  AND(s1, s2)
+}
+```
+
+```{r}
+XOR(0, 0)
+XOR(0, 1)
+XOR(1, 0)
+XOR(1, 1)
+```
