@@ -1,0 +1,11 @@
+version: "3"
+services:
+  r:
+    build: ./docker/r/
+    environment:
+      - "DISPLAY=${DISPLAY}"
+    volumes:
+      - .:/opt/work
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    working_dir: /opt/work
+    user: rstudio
