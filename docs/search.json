@@ -19,5 +19,19 @@
     "title": "2章 パーセプトロン",
     "section": "多層パーセプトロン",
     "text": "多層パーセプトロン\nXOR ゲートの実装\n\nXOR <- function(x1, x2) {\n  s1 <- NAND(x1, x2)\n  s2 <- OR(x1, x2)\n  AND(s1, s2)\n}\n\n\nXOR(0, 0)\n\n[1] 0\n\nXOR(0, 1)\n\n[1] 1\n\nXOR(1, 0)\n\n[1] 1\n\nXOR(1, 1)\n\n[1] 0"
+  },
+  {
+    "objectID": "ch03.html",
+    "href": "ch03.html",
+    "title": "3章 ニューラルネットワーク",
+    "section": "",
+    "text": "ステップ関数の実装\n\nstep_function <- function(x) as.numeric(x > 0)\n\n\nstep_function(c(-1.0, 1.0, 2.0))\n\n[1] 0 1 1\n\n\n\ncurve(step_function, -5, 5)\n\n\n\n\nシグモイド関数の実装\n\nsigmoid <- function(x) 1 / (1 + exp(-x))\n\n\nsigmoid(c(-1.0, 1.0, 2.0))\n\n[1] 0.2689414 0.7310586 0.8807971\n\n\n\ncurve(sigmoid, -5, 5)\n\n\n\n\nReLU関数\n\nrelu <- function(x) ifelse(x > 0, x, 0)\n\n\nrelu(c(-1.0, 1.0, 2.0))\n\n[1] 0 1 2\n\n\n\ncurve(relu, -5, 5)"
+  },
+  {
+    "objectID": "ch03.html#出力層の設計",
+    "href": "ch03.html#出力層の設計",
+    "title": "3章 ニューラルネットワーク",
+    "section": "出力層の設計",
+    "text": "出力層の設計\nソフトマックス関数の実装\n\nsoftmax <- function(a) {\n  exp_a <- exp(a)\n  exp_a / sum(exp_a)\n}\n\n\nsoftmax(c(0.3, 2.9, 4.0))\n\n[1] 0.01821127 0.24519181 0.73659691\n\n\nオーバーフローに関する問題\n\nsoftmax(c(1010, 1000, 990))\n\n[1] NaN NaN NaN\n\n\n対策\n\nsoftmax <- function(a) {\n  exp_a <- exp(a - max(a))\n  exp_a / sum(exp_a)\n}\n\n\nsoftmax(c(1010, 1000, 990))\n\n[1] 9.999546e-01 4.539787e-05 2.061060e-09"
   }
 ]
