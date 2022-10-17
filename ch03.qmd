@@ -1,0 +1,79 @@
+# 3章 ニューラルネットワーク {.unnumbered}
+
+## 活性化関数
+
+ステップ関数の実装
+
+```{r}
+step_function <- function(x) as.numeric(x > 0)
+```
+
+```{r}
+step_function(c(-1.0, 1.0, 2.0))
+```
+
+```{r}
+curve(step_function, -5, 5)
+```
+
+シグモイド関数の実装
+
+```{r}
+sigmoid <- function(x) 1 / (1 + exp(-x))
+```
+
+```{r}
+sigmoid(c(-1.0, 1.0, 2.0))
+```
+
+```{r}
+curve(sigmoid, -5, 5)
+```
+
+ReLU関数
+
+```{r}
+relu <- function(x) ifelse(x > 0, x, 0)
+```
+
+```{r}
+relu(c(-1.0, 1.0, 2.0))
+```
+
+```{r}
+curve(relu, -5, 5)
+```
+
+## 出力層の設計
+
+ソフトマックス関数の実装
+
+```{r}
+softmax <- function(a) {
+  exp_a <- exp(a)
+  exp_a / sum(exp_a)
+}
+```
+
+```{r}
+softmax(c(0.3, 2.9, 4.0))
+```
+
+オーバーフローに関する問題
+
+```{r}
+softmax(c(1010, 1000, 990))
+```
+
+対策
+
+```{r}
+softmax <- function(a) {
+  exp_a <- exp(a - max(a))
+  exp_a / sum(exp_a)
+}
+```
+
+```{r}
+softmax(c(1010, 1000, 990))
+```
