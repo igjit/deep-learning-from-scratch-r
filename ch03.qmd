@@ -77,3 +77,154 @@ softmax <- function(a) {
 ```{r}
 softmax(c(1010, 1000, 990))
 ```
+
+## 手書き数字認識
+
+MNISTデータセットのダウンロード、読み込みに[dslabs](https://cran.r-project.org/web/packages/dslabs/index.html)パッケージを使う。
+
+ディレクトリ`mnist_dir`にデータをダウンロードすることにする。
+
+```{r}
+mnist_dir <- "input/mnist/"
+file.exists(mnist_dir)
+```
+
+データをダウンロードして読み込む。
+
+```{r}
+#| eval: false
+
+mnist <- dslabs::read_mnist(download = TRUE, destdir = mnist_dir)
+```
+
+一度ダウンロードすれば、以降はダウンロードしたディレクトリからデータを読み込める。
+
+```{r}
+mnist <- dslabs::read_mnist(path = mnist_dir)
+```
+
+データ構造を確認
+
+```{r}
+str(mnist)
+```
+
+MNIST画像を表示してみる。
+
+```{r}
+img_show <- function(img) {
+  image(matrix(img, nrow = 28)[, 28:1], col = gray(1:12 / 12))
+}
+```
+
+ラベルを確認
+
+```{r}
+mnist$train$labels[1]
+```
+
+画像を表示
+
+```{r}
+img_show(mnist$train$images[1, ])
+```
+
+学習済みのパラメータ、`sample_weight.pkl`をダウンロード
+
+```{r}
+#| eval: false
+
+url <- "https://github.com/oreilly-japan/deep-learning-from-scratch/raw/master/ch03/sample_weight.pkl"
+download.file(url, "input/sample_weight.pkl")
+```
+
+[reticulate](https://rstudio.github.io/reticulate/)パッケージの[py_load_object](https://rstudio.github.io/reticulate/reference/py_save_object.html)関数を使ってpickleファイルを読み込む。
+
+```{r}
+network <- reticulate::py_load_object("input/sample_weight.pkl")
+```
+
+中身を確認
+
+```{r}
+str(network)
+```
+
+推論処理を行うニューラルネットワークの実装
+
+```{r}
+rep_row <- function(x, n) matrix(rep(x, n), n, byrow = TRUE)
+
+predict <- function(network, x) {
+  n <- nrow(x)
+  if (is.null(n)) n <- 1
+
+  a1 <- x %*% network$W1 + rep_row(network$b1, n)
+  z1 <- sigmoid(a1)
+  a2 <- z1 %*% network$W2 + rep_row(network$b2, n)
+  z2 <- sigmoid(a2)
+  a3 <- z2 %*% network$W3 + rep_row(network$b3, n)
+
+  softmax(a3)
+}
+```
+
+推論を実行
+
+```{r}
+#| output: false
+
+library(tidyverse)
+```
+
+```{r}
+# 正規化
+images <- mnist$test$images / 255
+
+preds <- 1:nrow(images) %>%
+  map(~ predict(network, images[., ])) %>%
+  map_int(which.max) - 1
+```
+
+```{r}
+head(preds)
+```
+
+認識精度
+
+```{r}
+accuracy <- mean(preds == mnist$test$labels)
+accuracy
+```
+
+誤認識した画像を確認
+
+```{r}
+misrecognitions <- tibble(actual = mnist$test$labels, pred = preds) %>%
+  mutate(i = row_number(), .before = 1) %>%
+  filter(actual != pred)
+
+misrecognitions %>% head(12)
+```
+
+```{r}
+par(mfrow = c(3, 4))
+
+misrecognitions %>%
+  head(12) %>%
+  pull(i) %>%
+  walk(~ img_show(mnist$test$images[., ]))
+```
+
+バッチ処理による実行
+
+```{r}
+batch_size <- 100
+
+preds2 <- seq(1, nrow(images), batch_size) %>%
+  map(~ predict(network, images[.:(. + batch_size - 1), ])) %>%
+  reduce(rbind) %>%
+  apply(1, which.max) - 1
+
+identical(preds, preds2)
+```
