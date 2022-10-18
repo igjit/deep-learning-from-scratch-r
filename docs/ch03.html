@@ -181,6 +181,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <ul>
   <li><a href="#活性化関数" id="toc-活性化関数" class="nav-link active" data-scroll-target="#活性化関数">活性化関数</a></li>
   <li><a href="#出力層の設計" id="toc-出力層の設計" class="nav-link" data-scroll-target="#出力層の設計">出力層の設計</a></li>
+  <li><a href="#手書き数字認識" id="toc-手書き数字認識" class="nav-link" data-scroll-target="#手書き数字認識">手書き数字認識</a></li>
   </ul>
 </nav>
     </div>
@@ -287,6 +288,174 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">softmax</span>(<span class="fu">c</span>(<span class="dv">1010</span>, <span class="dv">1000</span>, <span class="dv">990</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 9.999546e-01 4.539787e-05 2.061060e-09</code></pre>
+</div>
+</div>
+</section>
+<section id="手書き数字認識" class="level2">
+<h2 class="anchored" data-anchor-id="手書き数字認識">手書き数字認識</h2>
+<p>MNISTデータセットのダウンロード、読み込みに<a href="https://cran.r-project.org/web/packages/dslabs/index.html">dslabs</a>パッケージを使う。</p>
+<p>ディレクトリ<code>mnist_dir</code>にデータをダウンロードすることにする。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>mnist_dir <span class="ot">&lt;-</span> <span class="st">"input/mnist/"</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">file.exists</span>(mnist_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p>データをダウンロードして読み込む。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>mnist <span class="ot">&lt;-</span> dslabs<span class="sc">::</span><span class="fu">read_mnist</span>(<span class="at">download =</span> <span class="cn">TRUE</span>, <span class="at">destdir =</span> mnist_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>一度ダウンロードすれば、以降はダウンロードしたディレクトリからデータを読み込める。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>mnist <span class="ot">&lt;-</span> dslabs<span class="sc">::</span><span class="fu">read_mnist</span>(<span class="at">path =</span> mnist_dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>データ構造を確認</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(mnist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>List of 2
+ $ train:List of 2
+  ..$ images: int [1:60000, 1:784] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ labels: int [1:60000] 5 0 4 1 9 2 1 3 1 4 ...
+ $ test :List of 2
+  ..$ images: int [1:10000, 1:784] 0 0 0 0 0 0 0 0 0 0 ...
+  ..$ labels: int [1:10000] 7 2 1 0 4 1 4 9 5 9 ...</code></pre>
+</div>
+</div>
+<p>MNIST画像を表示してみる。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>img_show <span class="ot">&lt;-</span> <span class="cf">function</span>(img) {</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">image</span>(<span class="fu">matrix</span>(img, <span class="at">nrow =</span> <span class="dv">28</span>)[, <span class="dv">28</span><span class="sc">:</span><span class="dv">1</span>], <span class="at">col =</span> <span class="fu">gray</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span> <span class="sc">/</span> <span class="dv">12</span>))</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>ラベルを確認</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>mnist<span class="sc">$</span>train<span class="sc">$</span>labels[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5</code></pre>
+</div>
+</div>
+<p>画像を表示</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">img_show</span>(mnist<span class="sc">$</span>train<span class="sc">$</span>images[<span class="dv">1</span>, ])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="ch03_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>学習済みのパラメータ、<code>sample_weight.pkl</code>をダウンロード</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>url <span class="ot">&lt;-</span> <span class="st">"https://github.com/oreilly-japan/deep-learning-from-scratch/raw/master/ch03/sample_weight.pkl"</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">download.file</span>(url, <span class="st">"input/sample_weight.pkl"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><a href="https://rstudio.github.io/reticulate/">reticulate</a>パッケージの<a href="https://rstudio.github.io/reticulate/reference/py_save_object.html">py_load_object</a>関数を使ってpickleファイルを読み込む。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>network <span class="ot">&lt;-</span> reticulate<span class="sc">::</span><span class="fu">py_load_object</span>(<span class="st">"input/sample_weight.pkl"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>中身を確認</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(network)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>List of 6
+ $ b2: num [1:100(1d)] -0.01471 -0.07215 -0.00156 0.122 0.11603 ...
+ $ W1: num [1:784, 1:50] -0.00741 -0.0103 -0.01309 -0.01001 0.02207 ...
+ $ b1: num [1:50(1d)] -0.0675 0.0696 -0.0273 0.0226 -0.22 ...
+ $ W2: num [1:50, 1:100] -0.1069 0.2991 0.0658 0.0939 0.048 ...
+ $ W3: num [1:100, 1:10] -0.422 -0.524 0.683 0.155 0.505 ...
+ $ b3: num [1:10(1d)] -0.06024 0.00933 -0.0136 0.02167 0.01074 ...</code></pre>
+</div>
+</div>
+<p>推論処理を行うニューラルネットワークの実装</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>rep_row <span class="ot">&lt;-</span> <span class="cf">function</span>(x, n) <span class="fu">matrix</span>(<span class="fu">rep</span>(x, n), n, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>predict <span class="ot">&lt;-</span> <span class="cf">function</span>(network, x) {</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(x)</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(n)) n <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  a1 <span class="ot">&lt;-</span> x <span class="sc">%*%</span> network<span class="sc">$</span>W1 <span class="sc">+</span> <span class="fu">rep_row</span>(network<span class="sc">$</span>b1, n)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  z1 <span class="ot">&lt;-</span> <span class="fu">sigmoid</span>(a1)</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  a2 <span class="ot">&lt;-</span> z1 <span class="sc">%*%</span> network<span class="sc">$</span>W2 <span class="sc">+</span> <span class="fu">rep_row</span>(network<span class="sc">$</span>b2, n)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  z2 <span class="ot">&lt;-</span> <span class="fu">sigmoid</span>(a2)</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>  a3 <span class="ot">&lt;-</span> z2 <span class="sc">%*%</span> network<span class="sc">$</span>W3 <span class="sc">+</span> <span class="fu">rep_row</span>(network<span class="sc">$</span>b3, n)</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">softmax</span>(a3)</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>推論を実行</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 正規化</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>images <span class="ot">&lt;-</span> mnist<span class="sc">$</span>test<span class="sc">$</span>images <span class="sc">/</span> <span class="dv">255</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>preds <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(images) <span class="sc">%&gt;%</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">predict</span>(network, images[., ])) <span class="sc">%&gt;%</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_int</span>(which.max) <span class="sc">-</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(preds)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 7 2 1 0 4 1</code></pre>
+</div>
+</div>
+<p>認識精度</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds <span class="sc">==</span> mnist<span class="sc">$</span>test<span class="sc">$</span>labels)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>accuracy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.9352</code></pre>
+</div>
+</div>
+<p>誤認識した画像を確認</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>misrecognitions <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">actual =</span> mnist<span class="sc">$</span>test<span class="sc">$</span>labels, <span class="at">pred =</span> preds) <span class="sc">%&gt;%</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">i =</span> <span class="fu">row_number</span>(), <span class="at">.before =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(actual <span class="sc">!=</span> pred)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>misrecognitions <span class="sc">%&gt;%</span> <span class="fu">head</span>(<span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 3
+       i actual  pred
+   &lt;int&gt;  &lt;int&gt; &lt;dbl&gt;
+ 1     9      5     6
+ 2    34      4     6
+ 3    67      6     2
+ 4    93      9     4
+ 5   125      7     4
+ 6   150      2     9
+ 7   218      6     5
+ 8   234      8     7
+ 9   242      9     8
+10   246      3     5
+11   248      4     2
+12   260      6     0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>))</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>misrecognitions <span class="sc">%&gt;%</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">12</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(i) <span class="sc">%&gt;%</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">walk</span>(<span class="sc">~</span> <span class="fu">img_show</span>(mnist<span class="sc">$</span>test<span class="sc">$</span>images[., ]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="ch03_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>バッチ処理による実行</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>batch_size <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>preds2 <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(images), batch_size) <span class="sc">%&gt;%</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span> <span class="fu">predict</span>(network, images[.<span class="sc">:</span>(. <span class="sc">+</span> batch_size <span class="sc">-</span> <span class="dv">1</span>), ])) <span class="sc">%&gt;%</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">reduce</span>(rbind) <span class="sc">%&gt;%</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">apply</span>(<span class="dv">1</span>, which.max) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(preds, preds2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
 </div>
 </div>
 
