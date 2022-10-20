@@ -1,0 +1,139 @@
+# 4章 ニューラルネットワークの学習 {.unnumbered}
+
+準備
+
+```{r}
+#| output: false
+
+library(tidyverse)
+```
+
+## 損失関数
+
+交差エントロピー誤差
+
+```{r}
+cross_entropy_error <- function(y, t) {
+  if (is.vector(y)) {
+    y <- matrix(y, 1)
+    t <- matrix(t, 1)
+  }
+
+  if (identical(dim(t), dim(y))) {
+    t <- apply(t, 1, which.max) - 1
+  }
+
+  batch_size <- nrow(y)
+
+  -sum(log(map2_dbl(1:batch_size, t, ~ y[.x, .y + 1]) + 1e-7)) / batch_size
+}
+```
+
+```{r}
+y  <- c(0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0)
+```
+
+one-hot表現
+
+```{r}
+t <- c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0)
+cross_entropy_error(y, t)
+```
+
+ラベル
+
+```{r}
+cross_entropy_error(y, 2)
+```
+
+バッチデータ
+
+```{r}
+y2 <- matrix(seq(0.1, 0.6, 0.1), 2, byrow = TRUE)
+t2 <- matrix(c(0, 1, 0, 0, 0, 1), 2, byrow = TRUE)
+cross_entropy_error(y2, t2)
+cross_entropy_error(y2, c(1, 2))
+```
+
+## 勾配
+
+勾配
+
+```{r}
+numerical_gradient <- function(f, x) {
+  h <- 1e-4
+  if (is.vector(x)) x <- matrix(x, 1)
+  grad <- matrix(0, nrow(x), ncol(x))
+
+  for (i in 1:nrow(x)) {
+    for (j in 1:ncol(x)) {
+      x1 <- identity(x)
+      x1[i, j] <- x[i, j] + h
+      x2 <- identity(x)
+      x2[i, j] <- x[i, j] - h
+      grad[i, j] <- (f(x1) - f(x2)) / (2 * h)
+    }
+  }
+
+  grad
+}
+```
+
+```{r}
+function_2 <- function(x) sum(x ^ 2)
+```
+
+```{r}
+numerical_gradient(function_2, c(3.0, 4.0))
+numerical_gradient(function_2, c(0.0, 2.0))
+numerical_gradient(function_2, c(3.0, 0.0))
+```
+
+### 勾配法
+
+勾配降下法
+
+```{r}
+gradient_descent <- function(f, init_x, lr = 0.01, step_num = 100) {
+  x <- init_x
+  for (i in 1:step_num) {
+    x <- x - lr * numerical_gradient(f, x)
+  }
+  x
+}
+```
+
+もしくは
+
+```{r}
+gradient_descent <- function(f, init_x, lr = 0.01, step_num = 100) {
+  reduce(1:step_num, ~ .x - lr * numerical_gradient(f, .x), .init = init_x)
+}
+```
+
+```{r}
+init_x <- c(-3.0, 4.0)
+gradient_descent(function_2, init_x, lr = 0.1, step_num = 100)
+```
+
+勾配法による更新のプロセス
+
+```{r}
+gradient_descent_history <- function(f, init_x, lr = 0.01, step_num = 100) {
+  accumulate(1:step_num, ~ .x - lr * numerical_gradient(f, .x), .init = init_x)
+}
+```
+
+```{r}
+x_history <- gradient_descent_history(function_2, matrix(init_x, 1), lr = 0.1, step_num = 20)
+x_history_df <- x_history %>%
+  reduce(rbind) %>%
+  as.data.frame %>%
+  set_names("x0", "x1")
+
+head(x_history_df)
+```
+
+```{r}
+plot(x_history_df)
+```
