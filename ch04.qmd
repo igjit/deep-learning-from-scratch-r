@@ -6,6 +6,11 @@
 #| output: false
 
 library(tidyverse)
+library(R6)
+```
+
+```{r}
+source("common/functions.R")
 ```
 
 ## 損失関数
@@ -136,4 +141,117 @@ head(x_history_df)
 
 ```{r}
 plot(x_history_df)
+```
+
+### ニューラルネットワークに対する勾配
+
+```{r}
+SimpleNet <- R6Class("SimpleNet", list(
+  W = NULL,
+  initialize = function(W) self$W <- W,
+  predict = function(x) x %*% self$W,
+  loss = function(x, t) {
+    z <- self$predict(x)
+    y <- softmax(z)
+    cross_entropy_error(y, t)
+  },
+  loss_function = function(x, t) {
+    w_orig <- self$W
+    function(w) {
+      self$W <- w
+      loss <- self$loss(x, t)
+      self$W <- w_orig
+      loss
+    }
+  }))
+```
+
+```{r}
+W <- matrix(c(0.47355232, 0.9977393, 0.84668094,
+              0.85557411, 0.03563661, 0.69422093),
+            2, byrow = TRUE)
+net <- SimpleNet$new(W)
+x <- c(0.6, 0.9)
+p <- net$predict(x)
+p
+t <- matrix(c(0, 0, 1), 1)
+net$loss(x, t)
+```
+
+勾配
+
+```{r}
+f <- net$loss_function(x, t)
+numerical_gradient(f, net$W)
+```
+
+`f`は重みを受け取って損失を返す関数。
+
+## 学習アルゴリズムの実装
+
+### 2層ニューラルネットワークのクラス
+
+```{r}
+TwoLayerNet <- R6Class("TwoLayerNet", list(
+  params = NULL,
+  initialize = function(input_size, hidden_size, output_size,
+                        weight_init_std = 0.01) {
+    self$params <- list()
+    self$params$W1 <- matrix(rnorm(input_size * hidden_size, sd = weight_init_std),
+                             input_size, hidden_size)
+    self$params$b1 <- matrix(0, ncol = hidden_size)
+    self$params$W2 <- matrix(rnorm(hidden_size * output_size, sd = weight_init_std),
+                             hidden_size, output_size)
+    self$params$b2 <- matrix(0, ncol = output_size)
+  },
+  predict = function(x) {
+    n <- nrow(x)
+    if (is.null(n)) n <- 1
+
+    a1 <- x %*% self$params$W1 + rep_row(self$params$b1, n)
+    z1 <- sigmoid(a1)
+    a2 <- z1 %*% self$params$W2 + rep_row(self$params$b2, n)
+
+    softmax(a2)
+  },
+  loss = function(x, t) {
+    y <- self$predict(x)
+    cross_entropy_error(y, t)
+  },
+  loss_function = function(name, x, t) {
+    w_orig <- self$params[[name]]
+    function(w) {
+      self$params[[name]] <- w
+      loss <- self$loss(x, t)
+      self$params[[name]] <- w_orig
+      loss
+    }
+  },
+  numerical_gradient = function(x, t) {
+    list(
+      W1 = numerical_gradient(self$loss_function("W1", x, t), self$params$W1),
+      b1 = numerical_gradient(self$loss_function("b1", x, t), self$params$b1),
+      W2 = numerical_gradient(self$loss_function("W2", x, t), self$params$W2),
+      b2 = numerical_gradient(self$loss_function("b2", x, t), self$params$b2)
+    )
+  }))
+```
+
+```{r}
+net <- TwoLayerNet$new(input_size = 784, hidden_size = 100, output_size = 10)
+net$params %>% map(dim)
+```
+
+ダミーの入力データと正解ラベル
+
+```{r}
+x <- matrix(runif(100 * 784), 100)
+t <- matrix(runif(100 * 10), 100)
+```
+
+勾配を計算
+
+```{r}
+#| eval: false
+grads <- net$numerical_gradient(x, t)
 ```
