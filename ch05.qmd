@@ -1,0 +1,178 @@
+# 5章 誤差逆伝播法 {.unnumbered}
+
+準備
+
+```{r}
+#| output: false
+
+library(tidyverse)
+library(R6)
+```
+
+```{r}
+source("common/functions.R")
+```
+
+## 単純なレイヤの実装
+
+### 乗算レイヤの実装
+
+```{r}
+MulLayer <- R6Class("MulLayer", list(
+  x = NULL,
+  y = NULL,
+  forward = function(x, y) {
+    self$x <- x
+    self$y <- y
+    x * y
+  },
+  backward = function(dout) {
+    dx <- dout * self$y
+    dy <- dout * self$x
+    c(dx, dy)
+  }))
+```
+
+順伝播
+
+```{r}
+apple <- 100
+apple_num <- 2
+tax <- 1.1
+
+mul_apple_layer <- MulLayer$new()
+mul_tax_layer <- MulLayer$new()
+
+apple_price <- mul_apple_layer$forward(apple, apple_num)
+price <- mul_tax_layer$forward(apple_price, tax)
+```
+
+```{r}
+price
+```
+
+逆伝播（各変数に関する微分）
+
+```{r}
+dprice <- 1
+b1 <- mul_tax_layer$backward(dprice) %>%
+  set_names(c("dapple_price", "dtax"))
+b2 <- mul_apple_layer$backward(b1["dapple_price"]) %>%
+  set_names(c("dapple", "dapple_num"))
+```
+
+```{r}
+b2
+b1
+```
+
+### 加算レイヤの実装
+
+```{r}
+AddLayer <- R6Class("AddLayer", list(
+  forward = function(x, y) {
+    x + y
+  },
+  backward = function(dout) {
+    dx <- dout * 1
+    dy <- dout * 1
+    c(dx, dy)
+  }))
+```
+
+リンゴ2個とみかん3個の買い物
+
+```{r}
+apple <- 100
+apple_num <- 2
+orange <- 150
+orange_num <- 3
+tax <- 1.1
+
+# layer
+mul_apple_layer <- MulLayer$new()
+mul_orange_layer <- MulLayer$new()
+add_apple_orange_layer <- AddLayer$new()
+mul_tax_layer <- MulLayer$new()
+
+# forward
+apple_price <- mul_apple_layer$forward(apple, apple_num)
+orange_price <- mul_orange_layer$forward(orange, orange_num)
+all_price <- add_apple_orange_layer$forward(apple_price, orange_price)
+price <- mul_tax_layer$forward(all_price, tax)
+
+# backward
+dprice <- 1
+b1 <- mul_tax_layer$backward(dprice) %>%
+  set_names(c("dall_price", "dtax"))
+b2 <- add_apple_orange_layer$backward(b1["dall_price"]) %>%
+  set_names(c("dapple_price", "dorange_price"))
+b3 <- mul_orange_layer$backward(b2["dorange_price"]) %>%
+  set_names(c("dorange", "dorange_num"))
+b4 <- mul_apple_layer$backward(b2["dapple_price"]) %>%
+  set_names(c("dapple", "dapple_num"))
+```
+
+```{r}
+price
+b4
+b3
+b2
+b1
+```
+
+## 活性化関数レイヤの実装
+
+### ReLUレイヤ
+
+```{r}
+Relu <- R6Class("Relu", list(
+  positive = NULL,
+  forward = function(x) {
+    self$positive = x > 0
+    x * positive
+  },
+  backward = function(dout) {
+    dout * positive
+  }))
+```
+
+### Sigmoidレイヤ
+
+```{r}
+Sigmoid <- R6Class("Sigmoid", list(
+  out = NULL,
+  forward = function(x) {
+    self$out = 1 / (1 + exp(-x))
+    self$out
+  },
+  backward = function(dout) {
+    dout * (1 - self$out) * self$out
+  }))
+```
+
+## Affine/Softmaxレイヤの実装
+
+### バッチ版Affineレイヤ
+
+```{r}
+Affine <- R6Class("Affine", list(
+  W = NULL,
+  b = NULL,
+  x = NULL,
+  dW = NULL,
+  db = NULL,
+  initialize = function(W, b) {
+    self$W <- W
+    self$b <- b
+  },
+  forward = function(x) {
+    self$x <- x
+    x %*% self$W + rep_row(self$b, nrow(x))
+  },
+  backward = function(dout) {
+    self$dW <- t(self$x) %*% dout
+    self$db <- matrix(apply(dout, 2, sum), 1)
+    dout %*% t(self$W)
+  }))
+```
