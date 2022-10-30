@@ -130,10 +130,10 @@ Relu <- R6Class("Relu", list(
   positive = NULL,
   forward = function(x) {
     self$positive = x > 0
-    x * positive
+    x * self$positive
   },
   backward = function(dout) {
-    dout * positive
+    dout * self$positive
   }))
 ```
 
@@ -175,4 +175,143 @@ Affine <- R6Class("Affine", list(
     self$db <- matrix(apply(dout, 2, sum), 1)
     dout %*% t(self$W)
   }))
+```
+
+### Softmax-with-Lossレイヤ
+
+```{r}
+SoftmaxWithLoss <- R6Class("SoftmaxWithLoss", list(
+  loss = NULL,
+  y = NULL,
+  t = NULL,
+  forward = function(x, t) {
+    self$t <- t
+    self$y <- softmax(x)
+    self$loss <- cross_entropy_error(self$y, self$t)
+    self$loss
+  },
+  backward = function(dout) {
+    batch_size <- nrow(self$t)
+    (self$y - self$t) / batch_size
+  }))
+```
+
+## 誤差逆伝播法の実装
+
+### 誤差逆伝播法に対応したニューラルネットワークの実装
+
+```{r}
+TwoLayerNet <- R6Class("TwoLayerNet", list(
+  params = NULL,
+  layers = NULL,
+  last_layer = NULL,
+  initialize = function(input_size, hidden_size, output_size,
+                        weight_init_std = 0.01) {
+    self$params <- list(
+      W1 = matrix(rnorm(input_size * hidden_size, sd = weight_init_std),
+                  input_size, hidden_size),
+      b1 = matrix(0, ncol = hidden_size),
+      W2 = matrix(rnorm(hidden_size * output_size, sd = weight_init_std),
+                  hidden_size, output_size),
+      b2 = matrix(0, ncol = output_size)
+    )
+
+    self$initialize_layers()
+  },
+  initialize_layers = function() {
+    self$layers <- list(
+      Affine1 = Affine$new(self$params$W1, self$params$b1),
+      Relu1 = Relu$new(),
+      Affine2 = Affine$new(self$params$W2, self$params$b2)
+    )
+
+    self$last_layer = SoftmaxWithLoss$new()
+  },
+  predict = function(x) {
+    for (layer in self$layers) {
+      x <- layer$forward(x)
+    }
+    x
+  },
+  loss = function(x, t) {
+    y <- self$predict(x)
+    self$last_layer$forward(y, t)
+  },
+  loss_function = function(name, x, t) {
+    w_orig <- self$params[[name]]
+    function(w) {
+      self$params[[name]] <- w
+      self$initialize_layers()
+      loss <- self$loss(x, t)
+      self$params[[name]] <- w_orig
+      self$initialize_layers()
+      loss
+    }
+  },
+  numerical_gradient = function(x, t) {
+    list(
+      W1 = numerical_gradient(self$loss_function("W1", x, t), self$params$W1),
+      b1 = numerical_gradient(self$loss_function("b1", x, t), self$params$b1),
+      W2 = numerical_gradient(self$loss_function("W2", x, t), self$params$W2),
+      b2 = numerical_gradient(self$loss_function("b2", x, t), self$params$b2)
+    )
+  },
+  gradient = function(x, t) {
+    # forward
+    self$loss(x, t)
+
+    # backward
+    dout <- 1
+    dout <- self$last_layer$backward(dout)
+
+    for (layer in rev(self$layers)) {
+      dout <- layer$backward(dout)
+    }
+
+    list(
+      W1 = self$layers$Affine1$dW,
+      b1 = self$layers$Affine1$db,
+      W2 = self$layers$Affine2$dW,
+      b2 = self$layers$Affine2$db
+    )
+  }))
+```
+
+### 誤差逆伝播法の勾配確認
+
+ラベルをone-hot表現に変換する関数
+
+```{r}
+to_one_hot <- function(labels) {
+  matrix(labels, 1) %>%
+    apply(2, function(x) {
+      v <- rep(0, 10)
+      v[x + 1] <- 1
+      v
+    }) %>%
+    t
+}
+```
+
+```{r}
+to_one_hot(c(0, 2, 9))
+```
+
+勾配確認
+
+```{r}
+mnist <- dslabs::read_mnist(path = "input/mnist/")
+x_train <- mnist$train$images / 255
+t_train <- to_one_hot(mnist$train$labels)
+
+set.seed(1)
+network <- TwoLayerNet$new(input_size = 784, hidden_size = 50, output_size = 10)
+
+x_batch <- x_train %>% head(3)
+t_batch <- t_train %>% head(3)
+
+grad_numerical <- network$numerical_gradient(x_batch, t_batch)
+grad_backprop <- network$gradient(x_batch, t_batch)
+
+map2(grad_numerical, grad_backprop, ~ mean(abs(.x - .y)))
 ```
