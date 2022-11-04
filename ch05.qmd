@@ -186,7 +186,7 @@ SoftmaxWithLoss <- R6Class("SoftmaxWithLoss", list(
   t = NULL,
   forward = function(x, t) {
     self$t <- t
-    self$y <- softmax(x)
+    self$y <- base::t(apply(x, 1, softmax))
     self$loss <- cross_entropy_error(self$y, self$t)
     self$loss
   },
