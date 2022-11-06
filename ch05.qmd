@@ -248,6 +248,17 @@ TwoLayerNet <- R6Class("TwoLayerNet", list(
       loss
     }
   },
+  accuracy = function(x, t) {
+    y <- self$predict(x) %>%
+      apply(1, which.max) - 1
+
+    if (is.matrix(t)) {
+      t <- t %>%
+        apply(1, which.max) - 1
+    }
+
+    mean(y == t)
+  },
   numerical_gradient = function(x, t) {
     list(
       W1 = numerical_gradient(self$loss_function("W1", x, t), self$params$W1),
@@ -314,4 +325,48 @@ grad_numerical <- network$numerical_gradient(x_batch, t_batch)
 grad_backprop <- network$gradient(x_batch, t_batch)
 
 map2(grad_numerical, grad_backprop, ~ mean(abs(.x - .y)))
+```
+
+### 誤差逆伝播法を使った学習
+
+```{r}
+x_test <- mnist$test$images / 255
+t_test <- to_one_hot(mnist$test$labels)
+
+set.seed(1)
+network <- TwoLayerNet$new(input_size = 784, hidden_size = 50, output_size = 10)
+
+iters_num <- 10000
+train_size <- nrow(x_train)
+batch_size <- 100
+learning_rate <- 0.1
+
+iter_per_epoch <- max(train_size %/% batch_size, 1)
+
+acc_df <- map_dfr(1:iters_num, function(i) {
+  batch_mask <- sample(train_size, batch_size)
+  x_batch <- x_train[batch_mask, ]
+  t_batch <- t_train[batch_mask, ]
+
+  grad <- network$gradient(x_batch, t_batch)
+
+  for (name in names(grad)) {
+    network$params[[name]] <- network$params[[name]] - learning_rate * grad[[name]]
+  }
+  network$initialize_layers()
+
+  loss <- network$loss(x_batch, t_batch)
+
+  train_acc <- test_acc <- NA
+  if (i %% iter_per_epoch == 1) {
+    train_acc <- network$accuracy(x_train, t_train)
+    test_acc <- network$accuracy(x_test, t_test)
+  }
+
+  lst(loss, train_acc, test_acc)
+})
+```
+
+```{r}
+acc_df %>% filter(!is.na(train_acc))
 ```
