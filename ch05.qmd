@@ -216,9 +216,9 @@ TwoLayerNet <- R6Class("TwoLayerNet", list(
       b2 = matrix(0, ncol = output_size)
     )
 
-    self$initialize_layers()
+    self$update_layers()
   },
-  initialize_layers = function() {
+  update_layers = function() {
     self$layers <- list(
       Affine1 = Affine$new(self$params$W1, self$params$b1),
       Relu1 = Relu$new(),
@@ -241,10 +241,10 @@ TwoLayerNet <- R6Class("TwoLayerNet", list(
     w_orig <- self$params[[name]]
     function(w) {
       self$params[[name]] <- w
-      self$initialize_layers()
+      self$update_layers()
       loss <- self$loss(x, t)
       self$params[[name]] <- w_orig
-      self$initialize_layers()
+      self$update_layers()
       loss
     }
   },
@@ -353,7 +353,7 @@ acc_df <- map_dfr(1:iters_num, function(i) {
   for (name in names(grad)) {
     network$params[[name]] <- network$params[[name]] - learning_rate * grad[[name]]
   }
-  network$initialize_layers()
+  network$update_layers()
 
   loss <- network$loss(x_batch, t_batch)
 
