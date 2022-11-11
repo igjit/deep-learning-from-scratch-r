@@ -11,6 +11,7 @@ book:
     - ch03.qmd
     - ch04.qmd
     - ch05.qmd
+    - ch06.qmd
 
 bibliography: references.bib
 
