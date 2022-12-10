@@ -5,6 +5,7 @@ project:
 book:
   title: "ゼロから作るDeep Learning in R"
   author: "igjit"
+  repo-url: https://github.com/igjit/deep-learning-from-scratch-r
   chapters:
     - index.qmd
     - ch02.qmd
