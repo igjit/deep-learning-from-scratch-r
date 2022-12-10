@@ -159,9 +159,9 @@ accum_activations <- function(init, activation = sigmoid) {
   accumulate(
     1:hidden_layer_size,
     function(x, i) {
-      w <- matrix(rnorm(node_num * node_num), node_num, node_num) * init
-      z <- x %*% w
-      activation(z)
+      w <- matrix(rnorm(node_num * node_num), node_num) * init
+      a <- x %*% w
+      activation(a)
     },
     .init = x1
   ) %>% tail(-1)
